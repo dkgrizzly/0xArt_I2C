@@ -135,10 +135,14 @@ assign cfg_wready_o  = ~cfg_bvalid_o && ~cfg_arvalid_i && ~wvalid_q;
 //-----------------------------------------------------------------
 // Register I2C_CMD_STATUS
 //-----------------------------------------------------------------
-wire i2c_cs_en;
 reg i2c_enable = 1'b0;
 reg i2c_rw = 1'b0;
 wire i2c_busy;
+reg [1:0] i2c_bus_addr = 2'h0;
+reg [6:0] i2c_device_addr = 7'h0;
+reg [7:0] i2c_reg_addr = 8'h0;
+reg [7:0] i2c_mosi_data = 8'h0;
+reg [15:0] i2c_divider = DEFAULT_DIVIDER;
 
 assign i2c_cs_en = (write_en_w && (wr_addr_w[7:0] == `I2C_CMD_STATUS));
 
@@ -147,94 +151,40 @@ if (rst_i)
     begin
         i2c_enable <= 1'b0;
         i2c_rw     <= 1'b0;
+        i2c_bus_addr <= 8'h0;
+        i2c_device_addr <= 8'h0;
+        i2c_reg_addr <= 8'h0;
+        i2c_mosi_data <= 8'h0;
+        i2c_divider <= DEFAULT_DIVIDER;
     end
-else if(i2c_cs_en)
+else if(write_en_w)
     begin
-        i2c_enable <= wr_data_w[`I2C_CMD_ENABLE];
-        i2c_rw     <= wr_data_w[`I2C_CMD_RW];
+        case (wr_addr_w[7:0])
+        `I2C_CMD_STATUS:
+        begin
+            i2c_enable <= wr_data_w[`I2C_CMD_ENABLE];
+            i2c_rw     <= wr_data_w[`I2C_CMD_RW];
+        end
+
+        `I2C_BUS:
+            i2c_bus_addr <= wr_data_w[`I2C_BUS_R];
+
+        `I2C_DEVICE:
+            i2c_device_addr <= wr_data_w[`I2C_DEVICE_R];
+
+        `I2C_ADDRESS:
+            i2c_reg_addr <= wr_data_w[`I2C_ADDRESS_R];
+
+        `I2C_DATA:
+            i2c_mosi_data <= wr_data_w[`I2C_DATA_R];
+
+        `I2C_DIVIDER:
+            i2c_divider <= wr_data_w[`I2C_DIVIDER_R];
+
+        endcase
     end
 else if (i2c_enable && i2c_busy)
-    begin
-        i2c_enable <= 1'b0;
-    end
-
-
-//-----------------------------------------------------------------
-// Register I2C_BUS
-//-----------------------------------------------------------------
-wire i2c_bus_en;
-reg [1:0] i2c_bus_addr = 2'h0;
-
-assign i2c_bus_en = (write_en_w && (wr_addr_w[1:0] == `I2C_BUS));
-
-always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    i2c_bus_addr <= 8'h0;
-else if(i2c_bus_en)
-    i2c_bus_addr <= wr_data_w[`I2C_BUS_R];
-
-
-//-----------------------------------------------------------------
-// Register I2C_DEVICE
-//-----------------------------------------------------------------
-wire i2c_dev_en;
-reg [6:0] i2c_device_addr = 7'h0;
-
-assign i2c_dev_en = (write_en_w && (wr_addr_w[1:0] == `I2C_DEVICE));
-
-always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    i2c_device_addr <= 8'h0;
-else if (i2c_dev_en)
-    i2c_device_addr <= wr_data_w[`I2C_DEVICE_R];
-
-
-
-//-----------------------------------------------------------------
-// Register I2C_ADDRESS
-//-----------------------------------------------------------------
-wire i2c_addr_en;
-reg [7:0] i2c_reg_addr = 8'h0;
-
-assign i2c_addr_en = (write_en_w && (wr_addr_w[1:0] == `I2C_ADDRESS));
-
-always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    i2c_reg_addr <= 8'h0;
-else if (i2c_addr_en)
-    i2c_reg_addr <= wr_data_w[`I2C_ADDRESS_R];
-
-
-
-//-----------------------------------------------------------------
-// Register I2C_DATA
-//-----------------------------------------------------------------
-wire i2c_mosi_en;
-reg [7:0] i2c_mosi_data = 8'h0;
-
-assign i2c_mosi_en = (write_en_w && (wr_addr_w[1:0] == `I2C_DATA));
-
-always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    i2c_mosi_data <= 8'h0;
-else if (i2c_mosi_en)
-    i2c_mosi_data <= wr_data_w[`I2C_DATA_R];
-
-
-
-//-----------------------------------------------------------------
-// Register I2C_DIVIDER
-//-----------------------------------------------------------------
-wire i2c_div_en;
-reg [15:0] i2c_divider = DEFAULT_DIVIDER;
-
-assign i2c_div_en = (write_en_w && (wr_addr_w[1:0] == `I2C_DATA));
-
-always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    i2c_divider <= DEFAULT_DIVIDER;
-else if (i2c_div_en)
-    i2c_divider <= wr_data_w[`I2C_DIVIDER_R];
+    i2c_enable <= 1'b0;
 
 
 
@@ -250,30 +200,18 @@ begin
 
     case (cfg_araddr_i[7:0])
 
-    `I2C_DIVIDER:
-    begin
-        data_r[`I2C_DIVIDER_R] = i2c_divider;
-    end
-    `I2C_DATA:
-    begin
-        data_r[`I2C_DATA_R] = i2c_miso_data;
-    end
-    `I2C_ADDRESS:
-    begin
-        data_r[`I2C_ADDRESS_R] = i2c_reg_addr;
-    end
-    `I2C_DEVICE:
-    begin
-        data_r[`I2C_DEVICE_R] = i2c_device_addr;
-    end
-    `I2C_BUS:
-    begin
-        data_r[`I2C_BUS_R] = i2c_bus_addr;
-    end
     `I2C_CMD_STATUS:
-    begin
         data_r[`I2C_STATUS_BUSY] = i2c_busy;
-    end
+    `I2C_BUS:
+        data_r[`I2C_BUS_R] = i2c_bus_addr;
+    `I2C_DEVICE:
+        data_r[`I2C_DEVICE_R] = i2c_device_addr;
+    `I2C_ADDRESS:
+        data_r[`I2C_ADDRESS_R] = i2c_reg_addr;
+    `I2C_DATA:
+        data_r[`I2C_DATA_R] = i2c_miso_data;
+    `I2C_DIVIDER:
+        data_r[`I2C_DIVIDER_R] = i2c_divider;
     default :
         data_r = 32'b0;
     endcase
