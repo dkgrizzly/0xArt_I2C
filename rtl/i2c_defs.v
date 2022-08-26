@@ -17,7 +17,7 @@
 
     `define I2C_CMD_ENABLE         0
     `define I2C_CMD_RW             1
-    `define I2C_STATUS_BUSY        0
+    `define I2C_STATUS_BUSY        2
 
 `define I2C_BUS         8'h4
 

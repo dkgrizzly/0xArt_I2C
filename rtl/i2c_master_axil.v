@@ -135,9 +135,9 @@ assign cfg_wready_o  = ~cfg_bvalid_o && ~cfg_arvalid_i && ~wvalid_q;
 //-----------------------------------------------------------------
 // Register I2C_CMD_STATUS
 //-----------------------------------------------------------------
+wire i2c_busy;
 reg i2c_enable = 1'b0;
 reg i2c_rw = 1'b0;
-wire i2c_busy;
 reg [1:0] i2c_bus_addr = 2'h0;
 reg [6:0] i2c_device_addr = 7'h0;
 reg [7:0] i2c_reg_addr = 8'h0;
@@ -149,13 +149,13 @@ assign i2c_cs_en = (write_en_w && (wr_addr_w[7:0] == `I2C_CMD_STATUS));
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     begin
-        i2c_enable <= 1'b0;
-        i2c_rw     <= 1'b0;
-        i2c_bus_addr <= 8'h0;
+        i2c_enable      <= 1'b0;
+        i2c_rw          <= 1'b0;
+        i2c_bus_addr    <= 8'h0;
         i2c_device_addr <= 8'h0;
-        i2c_reg_addr <= 8'h0;
-        i2c_mosi_data <= 8'h0;
-        i2c_divider <= DEFAULT_DIVIDER;
+        i2c_reg_addr    <= 8'h0;
+        i2c_mosi_data   <= 8'h0;
+        i2c_divider     <= DEFAULT_DIVIDER;
     end
 else if(write_en_w)
     begin
@@ -183,8 +183,6 @@ else if(write_en_w)
 
         endcase
     end
-else if (i2c_enable && i2c_busy)
-    i2c_enable <= 1'b0;
 
 
 
@@ -201,7 +199,11 @@ begin
     case (cfg_araddr_i[7:0])
 
     `I2C_CMD_STATUS:
-        data_r[`I2C_STATUS_BUSY] = i2c_busy;
+        begin
+            data_r[`I2C_CMD_ENABLE] = i2c_enable;
+            data_r[`I2C_CMD_RW] = i2c_rw;
+            data_r[`I2C_STATUS_BUSY] = i2c_busy;
+        end
     `I2C_BUS:
         data_r[`I2C_BUS_R] = i2c_bus_addr;
     `I2C_DEVICE:

@@ -110,14 +110,14 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
     assign scl_oe = (state!=S_IDLE && proc_counter!=1 && proc_counter!=2);
 
     //tri state buffer for scl and sdo
-    assign io_scl0 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b00) ? .. : 1'bz
-    assign io_sda0 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b00) ? .. : 1'bz
-    assign io_scl1 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b01) ? .. : 1'bz
-    assign io_sda1 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b01) ? .. : 1'bz
-    assign io_scl2 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b10) ? .. : 1'bz
-    assign io_sda2 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b10) ? .. : 1'bz
-    assign io_scl3 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b11) ? .. : 1'bz
-    assign io_sda3 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b11) ? .. : 1'bz
+    assign io_scl0 = ((i_bus == 3'b00) && (scl_oe)) ? scl_out : 1'bz;
+    assign io_sda0 = ((i_bus == 3'b00) && (sda_oe)) ? sda_out : 1'bz;
+    assign io_scl1 = ((i_bus == 3'b01) && (scl_oe)) ? scl_out : 1'bz;
+    assign io_sda1 = ((i_bus == 3'b01) && (sda_oe)) ? sda_out : 1'bz;
+    assign io_scl2 = ((i_bus == 3'b10) && (scl_oe)) ? scl_out : 1'bz;
+    assign io_sda2 = ((i_bus == 3'b10) && (sda_oe)) ? sda_out : 1'bz;
+    assign io_scl3 = ((i_bus == 3'b11) && (scl_oe)) ? scl_out : 1'bz;
+    assign io_sda3 = ((i_bus == 3'b11) && (sda_oe)) ? sda_out : 1'bz;
 
     wire io_scl;
     wire io_sda;
