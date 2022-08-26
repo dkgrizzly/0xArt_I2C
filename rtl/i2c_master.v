@@ -30,14 +30,21 @@ module i2c_master#(
             input                           i_rst,
             input                           i_enable,
             input                           i_rw,
+            input       [1:0]               i_bus,
             input       [DATA_WIDTH-1:0]    i_mosi_data,
             input       [REG_WIDTH-1:0]     i_reg_addr,
             input       [ADDR_WIDTH-1:0]    i_device_addr,
             input  wire [15:0]              i_divider,
-            output reg  [DATA_WIDTH-1:0]     o_miso_data = 0,
+            output reg  [DATA_WIDTH-1:0]    o_miso_data = 0,
             output reg                      o_busy = 0,
-            inout                           io_sda,
-            inout                           io_scl
+            inout                           io_sda0,
+            inout                           io_scl0,
+            inout                           io_sda1,
+            inout                           io_scl1,
+            inout                           io_sda2,
+            inout                           io_scl2,
+            inout                           io_sda3,
+            inout                           io_scl3
     );
  
  /*INSTANTATION TEMPLATE
@@ -47,14 +54,21 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
             .i_rst(),
             .i_enable(),
             .i_rw(),
+            .i_bus(),
             .i_mosi_data(),
             .i_reg_addr(),
             .i_device_addr(),
             .i_divider(),
             .o_miso_data(),
             .o_busy(),
-            .io_sda(),
-            .io_scl()
+            .io_sda0(),
+            .io_scl0(),
+            .io_sda1(),
+            .io_scl1(),
+            .io_sda2(),
+            .io_scl2(),
+            .io_sda3(),
+            .io_scl3()
         );
 */
 
@@ -96,13 +110,31 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
     assign scl_oe = (state!=S_IDLE && proc_counter!=1 && proc_counter!=2);
 
     //tri state buffer for scl and sdo
-    assign io_scl = (scl_oe) ? scl_out : 1'bz;
-    assign io_sda = (sda_oe) ? sda_out : 1'bz;
+    assign io_scl0 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b00) ? .. : 1'bz
+    assign io_sda0 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b00) ? .. : 1'bz
+    assign io_scl1 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b01) ? .. : 1'bz
+    assign io_sda1 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b01) ? .. : 1'bz
+    assign io_scl2 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b10) ? .. : 1'bz
+    assign io_sda2 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b10) ? .. : 1'bz
+    assign io_scl3 = ((scl_oe) ? scl_out : 1'bz); // (i_bus == 3'b11) ? .. : 1'bz
+    assign io_sda3 = ((sda_oe) ? sda_out : 1'bz); // (i_bus == 3'b11) ? .. : 1'bz
 
+    wire io_scl;
+    wire io_sda;
+
+    assign io_scl = ((i_bus == 3'b00) ? io_scl0 :
+                    ((i_bus == 3'b01) ? io_scl1 :
+                    ((i_bus == 3'b10) ? io_scl2 :
+                    ((i_bus == 3'b11) ? io_scl3 : scl_out))));
+
+    assign io_sda = ((i_bus == 3'b00) ? io_sda0 :
+                    ((i_bus == 3'b01) ? io_sda1 :
+                    ((i_bus == 3'b10) ? io_sda2 :
+                    ((i_bus == 3'b11) ? io_sda3 : sda_out))));
     
-    reg [15:0] divider_counter = 0;
+    reg [15:0] divider_counter = 16'd0;
     wire divider_tick;
-    assign divider_tick = (divider_counter == i_divider) ? 1 : 0;
+    assign divider_tick = (divider_counter == i_divider) ? 1'b1 : 1'b0;
 
     //i2c divider tick geneartor
     always@(posedge i_clk)begin
@@ -114,7 +146,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                 divider_counter <= 0;
             end
             else begin
-                divider_counter <= divider_counter + 1;
+                divider_counter <= divider_counter + 16'd1;
             end
         end
     end
@@ -195,7 +227,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                             end
                             2: begin
                                 scl_out <= 0;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
@@ -265,7 +297,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                             end
                             2: begin
                                 scl_out <= 0;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
@@ -298,7 +330,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                             end
                             2: begin
                                 scl_out <= 0;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
@@ -343,7 +375,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                             end
                             2: begin
                                 scl_out <= 0;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
@@ -376,7 +408,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                             end
                             2: begin
                                 scl_out <= 0;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
@@ -430,7 +462,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                             end
                             2: begin
                                 scl_out <= 0;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
@@ -470,7 +502,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                                 scl_out <= 0; 
                                 //sample data on this rising edge of scl
                                 o_miso_data[bit_counter+7] <= io_sda;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
@@ -501,7 +533,7 @@ i2c_master #(.DATA_WIDTH(8),.REG_WIDTH(8),.ADDR_WIDTH(7))
                                 scl_out <= 0; 
                                 //sample data on this rising edge of scl
                                 o_miso_data[bit_counter-1] <= io_sda;
-                                bit_counter <= bit_counter -1;
+                                bit_counter <= bit_counter - 8'd1;
                                 proc_counter <= 3;
                             end
                             3: begin
